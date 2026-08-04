@@ -9,7 +9,7 @@ return {
           },
           viewFactory:spacer { height = 12 },
           viewFactory:static_text {
-            title = 'Created by Manu Wallner (GitHub: @milch, Instagram: @supermilch)'
+            title = 'Originally created by Manu Wallner (GitHub: @milch). Version 2 maintained by Tural Aliyev.'
           },
         }
       }

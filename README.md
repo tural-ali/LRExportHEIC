@@ -1,53 +1,90 @@
 # LRExportHEIC
 
-A plugin to allow Lightroom to export HEIC files.
+Native HEIC export for Adobe Lightroom Classic on macOS.
 
-There are two components:
+LRExportHEIC asks Lightroom to render an edited photo as an 8-bit or 16-bit TIFF, encodes it with Apple's native HEIC encoder, copies Lightroom's metadata into the HEIC container, and optionally imports the result into Apple Photos.
 
-- The plugin itself, which is the component that interfaces with Lightroom using the Lightroom SDK, written in Lua.
-- The CLI component, which takes an input file path and an output file path, and renders the HEIC image to the output file path. It is written in Swift.
+## Project status
 
-## Compatibility
+Version 2 is under active development.
 
-Because the CLI component is using macOS APIs to create the HEIC file, the only supported platform is macOS. Theoretically there should be nothing preventing it from working on earlier versions, but I have only personally tested it on macOS Monterey (v12+). It definitely won't work on Windows.
+The Swift pipeline and a 20-image Lightroom Classic 15.5 batch have been tested on macOS 27 with Apple Silicon.
 
-I have only tested the plugin to work with the latest version of Lightroom (v11).
+Use a backup and test your own workflow before relying on it for important exports.
+
+## Features
+
+- Apple's native 8-bit and 10-bit HEIC encoder.
+- Lossless ImageIO container copy for EXIF, IPTC, XMP, GPS, Lightroom namespaces, and other metadata supplied by Lightroom.
+- Embedded output ICC profile.
+- Optional Apple Photos import through PhotoKit.
+- Content-hash duplicate detection for repeated Photos imports.
+- Bounded parallel conversion from Lightroom.
+- Safe deletion of plugin-owned temporary TIFFs after Lightroom accepts the completed rendition.
+- Atomic destination writes and explicit existing-file handling.
+- Per-process JSONL logs under `~/Library/Logs/LRExportHEIC/`.
+- Remembered Lightroom export settings for quality, bit depth, Photos import, cleanup, parallelism, and log level.
+- Swift 6 with strict concurrency checks and no third-party runtime dependencies.
+
+## Verified environment
+
+- Lightroom Classic 15.5.
+- macOS 27 beta.
+- Xcode 27 beta and Swift 6.4.
+- Universal `arm64` and `x86_64` release build.
+
+Lightroom Classic 15.5 still supplies a `.jpg` destination name to this post-processing filter.
+
+The produced file contains real HEIC data, including a 10-bit HEVC Main 10 image when 10-bit output is selected.
+
+See [Known limitations](docs/KNOWN_LIMITATIONS.md) for details.
+
+## Installation
+
+See [Installation](docs/INSTALLATION.md).
 
 ## Usage
 
-This plugin is using Lightroom's SDK in a way that was probably not intended, so it may not work for your setup. It may mess up your files, corrupt your library, and kick your dog in the process. Proceed with caution, and always make sure you have a backup.
+1. Select photos in Lightroom Classic and open Export.
+2. Under Post-Process Actions, select Export HEIC and click Insert.
+3. Configure HEIC quality, color space, bit depth, Photos import, temporary-file cleanup, parallelism, and logging.
+4. Keep Lightroom's Metadata section set to the fields you want exported.
+5. Click Export.
 
-### Installation
+Lightroom renders temporary TIFFs first.
 
-- Download the [latest release](https://github.com/milch/LRExportHEIC/releases/latest) from the sidebar
-- Open Lightroom, and open the Plug-In Manager from the Menu
-- Press the `add` button, and select the plugin wherever you saved it. Make sure that it is enabled.
+The plugin converts them in parallel and writes HEIC data to Lightroom's requested destination paths.
 
-### Exporting HEIC files
+## Tests
 
-- Select images and start the export like normal (e.g. Right click + Export)
-- You will see a new "Post-Process Action" in the lower left corner of the export dialog, which you will need to highlight and then press `Insert` 
-- You will see a new panel named "HEIC settings" at the bottom. Note that the regular File Settings panel is unused at this point, and settings made in that panel will be overridden by any setting you choose in the "HEIC settings" panel
-- Press `Export`. Your export should proceed like normal, and you will find your files at the location you selected
-- The files will have a `.jpg` extension. This is expected. You can rename them to use a `.heic` extension or leave them with the `.jpg` extension. Most applications won't care about the extension, and will be able to use the file like normal. 
+Run the suite with full Xcode because Apple's HEIC encoder needs access to system media services:
 
-The plugin also adds a new item under "Export To" named "Export HEIC". This does nothing more than hide the original File Settings panel so you don't accidentally make changes there instead of the "HEIC settings" panel. However, this is entirely optional and only a cosmetic change.
+```bash
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --disable-sandbox
+```
 
-## How does it work? 
+If you use Xcode beta, replace `Xcode.app` with `Xcode-beta.app`.
 
-The plugin creates what the Lightroom SDK calls an "Export post-process action" or an "Export Filter Provider". As the name suggests, it allows the plugin to run some code after Lightroom has completed the initial processing of the image. Here is roughly what happens:
+The automated suite covers JPEG, TIFF, 16-bit TIFF, 8-bit HEIC, 10-bit HEIC, metadata, ICC profiles, Unicode and long paths, concurrent batches, and Photos duplicate detection.
 
-- Lightroom renders the image according to the user's settings
-- This plugin (ExportHEIC) starts executing and is provided with a list of images and their export settings
-- ExportHEIC requests a different version of the image to be rendered into a temporary location. According to the Lightroom SDK guide, now it becomes the plugin's responsibility to place the final image in the originally requested location
-  - The rendering that ExportHEIC requests will be either an 8-bit or a 16-bit TIFF depending on the bit-depth selected in the HEIC settings panel
- - ExportHEIC uses a helper executable to render the temporary TIFF file created in the previous step into an HEIC file 
- - The HEIC file is placed at the originally requested location 
-   - This is why it has to have a .jpg extension. If the file had a .heic extension instead, Lightroom would say that the export failed because it couldn't find the final rendered file
+## Documentation
 
-## Why HEIC?
+- [Architecture and audit](docs/ARCHITECTURE.md)
+- [Installation](docs/INSTALLATION.md)
+- [Migration from version 1](docs/MIGRATION.md)
+- [Known limitations](docs/KNOWN_LIMITATIONS.md)
+- [Changelog](CHANGELOG.md)
 
-HEIC is a more modern file format than the standard JPEG, which is frequently used to render photos after they have been edited, and to share them with friends or online. HEIC is well-supported by most viewers and has been used by Apple in one form or another since 2017. Camera manufacturers are also starting to adopt it, with flagship cameras like the Sony A1 or Canon R3 adding support. There are two main benefits to HEIC:
+## Credits
 
-- A better compression algorithm, meaning either a lower file size for the same perceived quality or a higher quality image at the same file size
-- 10-bit encoding support, allowing for a wider dynamic range and giving more latitude for further edits than the 8-bit JPEG
+LRExportHEIC was originally created by [Manu Wallner](https://github.com/milch).
+
+Version 2 builds directly on Manu's Lightroom Lua plugin, native Swift encoder, quality-search implementation, release automation, and original project design.
+
+The original repository is [milch/LRExportHEIC](https://github.com/milch/LRExportHEIC).
+
+## License
+
+MIT.
+
+See [LICENSE](LICENSE).
