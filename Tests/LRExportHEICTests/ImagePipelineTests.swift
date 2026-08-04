@@ -15,7 +15,7 @@ struct ImagePipelineTests {
     let output = fixture.directory.appendingPathComponent("output.heic")
     _ = try exporter(in: fixture.directory).export(options(input: fixture.url, output: output, depth: .eight))
     #expect(CGImageSourceCreateWithURL(output as CFURL, nil) != nil)
-    #expect(try MetadataCopier.tags(at: fixture.url).isSubset(of: MetadataCopier.tags(at: output)))
+    #expect(try MetadataCopier.semanticTags(at: fixture.url).isSubset(of: MetadataCopier.tags(at: output)))
   }
 
   @Test("Encodes 16-bit TIFF as 10-bit HEIC")

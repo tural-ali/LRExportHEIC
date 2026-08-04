@@ -18,7 +18,9 @@ final class FileLogger: @unchecked Sendable {
       try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
       let formatter = DateFormatter()
       formatter.dateFormat = "yyyy-MM-dd"
-      let url = base.appendingPathComponent("LRExportHEIC-\(formatter.string(from: Date())).jsonl")
+      let processID = ProcessInfo.processInfo.processIdentifier
+      let url = base.appendingPathComponent(
+        "LRExportHEIC-\(formatter.string(from: Date()))-\(processID).jsonl")
       if !FileManager.default.fileExists(atPath: url.path) {
         FileManager.default.createFile(atPath: url.path, contents: nil)
       }

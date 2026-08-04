@@ -58,6 +58,10 @@ enum MetadataCopier {
     return tags(in: metadata)
   }
 
+  static func semanticTags(at url: URL) throws -> Set<String> {
+    try tags(at: url).filter(isSemanticTag)
+  }
+
   private static func tags(in metadata: CGImageMetadata) -> Set<String> {
     guard let tags = CGImageMetadataCopyTags(metadata) as? [CGImageMetadataTag] else { return [] }
     var paths = Set<String>()
@@ -73,6 +77,7 @@ enum MetadataCopier {
 
   private static func isSemanticTag(_ path: String) -> Bool {
     let formatSpecificTags: Set<String> = [
+      "iio:hasIIM",
       "tiff:BitsPerSample", "tiff:Compression", "tiff:ImageLength", "tiff:ImageWidth",
       "tiff:PhotometricInterpretation", "tiff:PlanarConfiguration", "tiff:ResolutionUnit",
       "tiff:RowsPerStrip", "tiff:SamplesPerPixel", "tiff:StripByteCounts",

@@ -244,12 +244,6 @@ return {
           .. ' ' .. shellQuote(job.destinationPath)
         logger:info('Converting: ' .. job.inputPath)
         job.status = LrTasks.execute(actualCmd)
-        if job.status == 0 and p.HEICDeleteTemporary then
-          local deleted, deleteError = LrFileUtils.delete(job.inputPath)
-          if not deleted then
-            logger:warn('Could not delete temporary TIFF: ' .. tostring(deleteError))
-          end
-        end
       end
       completedWorkers = completedWorkers + 1
     end
@@ -264,6 +258,12 @@ return {
     for _, job in ipairs(jobs) do
       if job.status == 0 then
         job.rendition:renditionIsDone(true, 'Success')
+        if p.HEICDeleteTemporary then
+          local deleted, deleteError = LrFileUtils.delete(job.inputPath)
+          if not deleted then
+            logger:warn('Could not delete temporary TIFF: ' .. tostring(deleteError))
+          end
+        end
       else
         logger:error('Conversion failed with status ' .. tostring(job.status))
         job.rendition:renditionIsDone(false, 'HEIC conversion failed. See ~/Library/Logs/LRExportHEIC/.')
