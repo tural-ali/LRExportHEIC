@@ -11,7 +11,7 @@ jobs:
   test-and-build:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Toolchain
         run: |
@@ -28,7 +28,7 @@ jobs:
         run: lipo -archs plugin/ExportHEIC.lrplugin/LRExportHEIC
 
       - name: Upload plugin
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ExportHEIC.lrplugin
           path: plugin/ExportHEIC.lrplugin
