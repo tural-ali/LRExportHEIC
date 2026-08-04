@@ -1,4 +1,6 @@
 local LrBinding = import 'LrBinding'
+local LrApplication = import 'LrApplication'
+local LrFileUtils = import 'LrFileUtils'
 local LrLogger = import 'LrLogger'
 local LrPathUtils = import 'LrPathUtils'
 local LrTasks = import 'LrTasks'
@@ -11,6 +13,18 @@ function formatPercentage(num, fromModel)
   return tostring(math.floor(num)) .. ' %'
 end
 
+local function shellQuote(value)
+  return "'" .. string.gsub(tostring(value), "'", "'\\''") .. "'"
+end
+
+local function lightroomVersion()
+  local success, version = pcall(function()
+    local v = LrApplication.versionTable()
+    return table.concat({ v.major or 0, v.minor or 0, v.revision or 0 }, '.')
+  end)
+  return success and version or 'unknown'
+end
+
 return {
   exportPresetFields = {
     { key = 'HEICQuality', default = 75 },
@@ -20,6 +34,10 @@ return {
     { key = 'HEICMaxQuality', default = 90 },
     { key = 'HEICColorSpace', default = 'SRGB' },
     { key = 'HEICBitDepth', default = 10 },
+    { key = 'HEICImportPhotos', default = false },
+    { key = 'HEICDeleteTemporary', default = true },
+    { key = 'HEICParallelism', default = 4 },
+    { key = 'HEICLogLevel', default = 'info' },
   },
   hideSections = { 'video', 'fileSettings' },
   -- sectionsForTopOfDialog = function( viewFactory, propertyTable )
@@ -77,6 +95,14 @@ return {
             f:radio_button { value = bind 'HEICBitDepth', title = '10', checked_value = 10 },
           },  -- control 3: bit depth
 
+          f:row {
+            f:checkbox { value = bind 'HEICImportPhotos', title = 'Import into Apple Photos' },
+          },
+
+          f:row {
+            f:checkbox { value = bind 'HEICDeleteTemporary', title = 'Delete temporary TIFFs' },
+          },
+
         },  -- left-column
 
         f:column {  -- right column
@@ -104,6 +130,27 @@ return {
             },
             f:static_text {
               title = bind({ key = 'HEICMinQuality', transform = formatPercentage })
+            },
+          },
+
+          f:row {
+            f:static_text { width_in_chars = 9, title = 'Parallel jobs:' },
+            f:edit_field {
+              value = bind 'HEICParallelism',
+              min = 1, max = 16, integral = true, width_in_digits = 2,
+            },
+          },
+
+          f:row {
+            f:static_text { width_in_chars = 9, title = 'Log level:' },
+            f:popup_menu {
+              width_in_chars = 8,
+              items = {
+                { title = 'Errors', value = 'error' },
+                { title = 'Info', value = 'info' },
+                { title = 'Debug', value = 'debug' },
+              },
+              value = bind 'HEICLogLevel',
             },
           },
 
@@ -148,7 +195,7 @@ return {
     }
 
     local converterPath = LrPathUtils.child(_PLUGIN.path, 'LRExportHEIC')
-    local cmd = '"' .. converterPath .. '"'
+    local cmd = shellQuote(converterPath)
     if p.HEICUseSizeLimit then
       cmd = (cmd .. ' --size-limit ' .. (p.HEICSizeLimit * 1000)
              .. ' --min-quality ' .. (p.HEICMinQuality / 100)
@@ -157,24 +204,69 @@ return {
       cmd = cmd .. ' --quality ' .. (p.HEICQuality / 100)
     end
 
+    cmd = cmd .. ' --bit-depth ' .. p.HEICBitDepth
+      .. ' --color-space ' .. shellQuote(p.HEICColorSpace)
+      .. ' --log-level ' .. shellQuote(p.HEICLogLevel)
+      .. ' --lightroom-version ' .. shellQuote(lightroomVersion())
+    if p.HEICImportPhotos then
+      cmd = cmd .. ' --photos-import'
+    end
+
     logger:info('Starting rendering of TIFF originals')
+    local jobs = {}
     for sourceRendition, renditionToSatisfy in  filterContext:renditions(renditionOptions) do
       logger:info('Processing rendition')
       local success, pathOrMessage = sourceRendition:waitForRender()
       if success then
-        local actualCmd = (cmd .. ' --input-file "' .. pathOrMessage .. '" "'
-                           .. renditionToSatisfy.destinationPath .. '"')
-        local status = LrTasks.execute(actualCmd)
-        logger:info('Command status: ' .. status)
-        if status ~= 0 then
-          logger:info('Failure')
-          renditionToSatisfy:renditionIsDone(false, pathOrMessage)
-          break
-        end
-        logger:info('Success')
-        renditionToSatisfy:renditionIsDone(true, 'Success')
+        table.insert(jobs, {
+          inputPath = pathOrMessage,
+          destinationPath = renditionToSatisfy.destinationPath,
+          rendition = renditionToSatisfy,
+        })
       else
         logger:info('Source rendition did not finish rendering: ' .. pathOrMessage)
+        renditionToSatisfy:renditionIsDone(false, pathOrMessage)
+      end
+    end
+
+
+    local nextJob = 1
+    local completedWorkers = 0
+    local workerCount = math.min(math.max(1, p.HEICParallelism), #jobs)
+    local function runWorker()
+      while true do
+        local index = nextJob
+        nextJob = nextJob + 1
+        local job = jobs[index]
+        if not job then break end
+
+        local actualCmd = cmd .. ' --input-file ' .. shellQuote(job.inputPath)
+          .. ' ' .. shellQuote(job.destinationPath)
+        logger:info('Converting: ' .. job.inputPath)
+        job.status = LrTasks.execute(actualCmd)
+        if job.status == 0 and p.HEICDeleteTemporary then
+          local deleted, deleteError = LrFileUtils.delete(job.inputPath)
+          if not deleted then
+            logger:warn('Could not delete temporary TIFF: ' .. tostring(deleteError))
+          end
+        end
+      end
+      completedWorkers = completedWorkers + 1
+    end
+
+    for _ = 1, workerCount do
+      LrTasks.startAsyncTask(runWorker)
+    end
+    while completedWorkers < workerCount do
+      LrTasks.sleep(0.05)
+    end
+
+    for _, job in ipairs(jobs) do
+      if job.status == 0 then
+        job.rendition:renditionIsDone(true, 'Success')
+      else
+        logger:error('Conversion failed with status ' .. tostring(job.status))
+        job.rendition:renditionIsDone(false, 'HEIC conversion failed. See ~/Library/Logs/LRExportHEIC/.')
       end
     end
   end,
