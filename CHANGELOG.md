@@ -4,6 +4,7 @@
 
 ### Added
 
+- One-line, non-root installer for building and installing the plugin into Lightroom's per-user Modules folder.
 - Native metadata merge and post-write verification through ImageIO.
 - Explicit 8-bit, 10-bit, and automatic bit-depth selection in the Swift CLI.
 - PhotoKit import with SHA-256 duplicate detection.

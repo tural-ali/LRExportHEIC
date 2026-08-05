@@ -41,7 +41,17 @@ See [Known limitations](docs/KNOWN_LIMITATIONS.md) for details.
 
 ## Installation
 
-See [Installation](docs/INSTALLATION.md).
+Install or update from source with one command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/tural-ali/LRExportHEIC/main/install.sh | /bin/bash
+```
+
+The installer builds a universal plugin with your installed Xcode and places it in Lightroom Classic's per-user Modules folder.
+
+Restart Lightroom Classic after it finishes.
+
+See [Installation](docs/INSTALLATION.md) for requirements, manual installation, and troubleshooting.
 
 ## Usage
 

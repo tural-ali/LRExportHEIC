@@ -21,6 +21,9 @@ jobs:
       - name: Test
         run: swift test --disable-sandbox
 
+      - name: Validate installer
+        run: bash -n install.sh
+
       - name: Build universal plugin
         run: ./build.sh
 
