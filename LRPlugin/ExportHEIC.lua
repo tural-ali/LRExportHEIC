@@ -25,6 +25,29 @@ local function lightroomVersion()
   return success and version or 'unknown'
 end
 
+local function deleteTemporaryFilesAfterCompletion(paths)
+  if #paths == 0 then return end
+
+  LrTasks.startAsyncTask(function()
+    -- Lightroom can inspect filter renditions while the post-processing
+    -- callback is unwinding. Deleting them synchronously after
+    -- renditionIsDone() can therefore turn a successful export into a false
+    -- "failed to render" result.
+    LrTasks.sleep(2)
+
+    for _, path in ipairs(paths) do
+      local callSucceeded, deleted, deleteError = pcall(LrFileUtils.delete, path)
+      if not callSucceeded then
+        logger:warn('Could not delete temporary TIFF: ' .. tostring(deleted))
+      elseif deleted == false then
+        logger:warn('Could not delete temporary TIFF: ' .. tostring(deleteError))
+      else
+        logger:info('Deleted temporary TIFF: ' .. path)
+      end
+    end
+  end)
+end
+
 return {
   exportPresetFields = {
     { key = 'HEICQuality', default = 75 },
@@ -255,20 +278,19 @@ return {
       LrTasks.sleep(0.05)
     end
 
+    local temporaryFilesToDelete = {}
     for _, job in ipairs(jobs) do
       if job.status == 0 then
         job.rendition:renditionIsDone(true, 'Success')
         if p.HEICDeleteTemporary then
-          local deleted, deleteError = LrFileUtils.delete(job.inputPath)
-          if not deleted then
-            logger:warn('Could not delete temporary TIFF: ' .. tostring(deleteError))
-          end
+          table.insert(temporaryFilesToDelete, job.inputPath)
         end
       else
         logger:error('Conversion failed with status ' .. tostring(job.status))
         job.rendition:renditionIsDone(false, 'HEIC conversion failed. See ~/Library/Logs/LRExportHEIC/.')
       end
     end
+    deleteTemporaryFilesAfterCompletion(temporaryFilesToDelete)
   end,
   -- processRenderedPhotos = function(functionContext, exportContext)
   -- end

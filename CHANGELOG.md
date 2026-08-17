@@ -27,7 +27,7 @@
 
 - Shell quoting for spaces, Unicode, emoji, and apostrophes in paths.
 - Concurrent log corruption by isolating log files per process.
-- Lightroom false failure reports caused by deleting temporary TIFFs before `renditionIsDone`.
+- Lightroom false failure reports caused by deleting temporary TIFFs before Lightroom finished unwinding the post-processing callback. Cleanup now runs in a guarded deferred task after `renditionIsDone`.
 
 ### Verified
 
