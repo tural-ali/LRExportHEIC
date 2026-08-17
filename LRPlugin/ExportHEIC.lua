@@ -59,7 +59,6 @@ return {
     { key = 'HEICBitDepth', default = 10 },
     { key = 'HEICImportPhotos', default = false },
     { key = 'HEICDeleteTemporary', default = true },
-    { key = 'HEICParallelism', default = 4 },
     { key = 'HEICLogLevel', default = 'info' },
   },
   hideSections = { 'video', 'fileSettings' },
@@ -157,14 +156,6 @@ return {
           },
 
           f:row {
-            f:static_text { width_in_chars = 9, title = 'Parallel jobs:' },
-            f:edit_field {
-              value = bind 'HEICParallelism',
-              min = 1, max = 16, integral = true, width_in_digits = 2,
-            },
-          },
-
-          f:row {
             f:static_text { width_in_chars = 9, title = 'Log level:' },
             f:popup_menu {
               width_in_chars = 8,
@@ -236,58 +227,31 @@ return {
     end
 
     logger:info('Starting rendering of TIFF originals')
-    local jobs = {}
+    local temporaryFilesToDelete = {}
     for sourceRendition, renditionToSatisfy in  filterContext:renditions(renditionOptions) do
       logger:info('Processing rendition')
       local success, pathOrMessage = sourceRendition:waitForRender()
       if success then
-        table.insert(jobs, {
-          inputPath = pathOrMessage,
-          destinationPath = renditionToSatisfy.destinationPath,
-          rendition = renditionToSatisfy,
-        })
+        local actualCmd = cmd .. ' --input-file ' .. shellQuote(pathOrMessage)
+          .. ' ' .. shellQuote(renditionToSatisfy.destinationPath)
+        logger:info('Converting: ' .. pathOrMessage)
+        local status = LrTasks.execute(actualCmd)
+        logger:info('Command status: ' .. tostring(status))
+        if status == 0 then
+          -- Complete the rendition before advancing the iterator. Lightroom's
+          -- iterator automatically marks an unfinished rendition as failed
+          -- when this loop iteration ends.
+          renditionToSatisfy:renditionIsDone(true, 'Success')
+          if p.HEICDeleteTemporary then
+            table.insert(temporaryFilesToDelete, pathOrMessage)
+          end
+        else
+          logger:error('Conversion failed with status ' .. tostring(status))
+          renditionToSatisfy:renditionIsDone(false, 'HEIC conversion failed. See ~/Library/Logs/LRExportHEIC/.')
+        end
       else
         logger:info('Source rendition did not finish rendering: ' .. pathOrMessage)
         renditionToSatisfy:renditionIsDone(false, pathOrMessage)
-      end
-    end
-
-
-    local nextJob = 1
-    local completedWorkers = 0
-    local workerCount = math.min(math.max(1, p.HEICParallelism), #jobs)
-    local function runWorker()
-      while true do
-        local index = nextJob
-        nextJob = nextJob + 1
-        local job = jobs[index]
-        if not job then break end
-
-        local actualCmd = cmd .. ' --input-file ' .. shellQuote(job.inputPath)
-          .. ' ' .. shellQuote(job.destinationPath)
-        logger:info('Converting: ' .. job.inputPath)
-        job.status = LrTasks.execute(actualCmd)
-      end
-      completedWorkers = completedWorkers + 1
-    end
-
-    for _ = 1, workerCount do
-      LrTasks.startAsyncTask(runWorker)
-    end
-    while completedWorkers < workerCount do
-      LrTasks.sleep(0.05)
-    end
-
-    local temporaryFilesToDelete = {}
-    for _, job in ipairs(jobs) do
-      if job.status == 0 then
-        job.rendition:renditionIsDone(true, 'Success')
-        if p.HEICDeleteTemporary then
-          table.insert(temporaryFilesToDelete, job.inputPath)
-        end
-      else
-        logger:error('Conversion failed with status ' .. tostring(job.status))
-        job.rendition:renditionIsDone(false, 'HEIC conversion failed. See ~/Library/Logs/LRExportHEIC/.')
       end
     end
     deleteTemporaryFilesAfterCompletion(temporaryFilesToDelete)

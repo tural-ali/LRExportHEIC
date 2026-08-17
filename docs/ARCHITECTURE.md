@@ -15,8 +15,8 @@ No external image encoder is used.
 1. Lightroom applies RAW development settings.
 2. The Lua export filter overrides Lightroom's intermediate format to TIFF.
 3. Lightroom renders an 8-bit TIFF for 8-bit HEIC or a 16-bit TIFF for 10-bit HEIC.
-4. The filter collects completed renditions.
-5. A bounded set of Lightroom asynchronous workers launches the Swift executable.
+4. The filter launches the Swift executable for that rendition before advancing Lightroom's rendition iterator.
+5. Lightroom can continue rendering upstream while the current conversion runs.
 6. Core Image writes an 8-bit or 10-bit HEIC using Apple's encoder.
 7. ImageIO copies the encoded HEIC container without recompressing its pixel payload and merges metadata from Lightroom's TIFF.
 8. The Swift executable verifies semantic metadata tags and atomically installs the destination file.
@@ -70,13 +70,11 @@ The Lightroom 15.5 batch contained 199 to 200 source tags per image and 203 to 2
 
 ## Concurrency and memory
 
-Lightroom renders intermediates before conversion.
+The Lightroom SDK automatically fails a rendition if the filter advances its rendition iterator before producing the requested destination.
 
-The Lua filter runs a configurable number of conversion workers, defaulting to four and capped at sixteen.
+The Lua filter therefore completes conversion and calls `renditionIsDone` inside the same iterator step.
 
-Each Swift process creates its own `CIContext` with intermediate caching disabled.
-
-This bounds encoder memory by worker count and avoids shared mutable Swift state.
+Each Swift process creates its own `CIContext` with intermediate caching disabled, which bounds memory to one conversion process per export filter invocation.
 
 ## Error handling
 
@@ -110,4 +108,4 @@ The Lua layer continues independent jobs after one conversion fails and reports 
 - Add real PhotoKit authorization integration tests behind an opt-in test flag.
 - Add fixture assertions for exact metadata values, not only tag presence.
 - Add process-level peak resident-memory collection to the benchmark harness.
-- Add automatic worker selection from available CPU and memory instead of a fixed default.
+- Investigate a supported Lightroom SDK design for bounded parallel conversion without advancing unfinished rendition iterator steps.

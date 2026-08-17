@@ -28,6 +28,14 @@ The same visual image encoded with different settings has different bytes and is
 
 If the Photos asset is deleted, the next matching export can be imported again.
 
+## Parallel conversion
+
+Conversion is currently serial within one Lightroom export filter invocation.
+
+Lightroom automatically fails an unfinished rendition when a filter advances its rendition iterator, so conversion must complete within that iterator step.
+
+The previous worker-pool implementation violated this lifecycle and was removed because correctness takes priority over throughput.
+
 ## Release signing
 
 Local development builds are ad-hoc signed by the linker.

@@ -8,7 +8,6 @@
 - Native metadata merge and post-write verification through ImageIO.
 - Explicit 8-bit, 10-bit, and automatic bit-depth selection in the Swift CLI.
 - PhotoKit import with SHA-256 duplicate detection.
-- Configurable bounded parallel conversion in Lightroom.
 - Safe temporary-TIFF cleanup after Lightroom acknowledgement.
 - Per-process structured JSONL logging with timings, metadata counts, Photos results, Lightroom version, and macOS version.
 - Typed errors and atomic destination installation.
@@ -28,6 +27,7 @@
 - Shell quoting for spaces, Unicode, emoji, and apostrophes in paths.
 - Concurrent log corruption by isolating log files per process.
 - Lightroom false failure reports caused by deleting temporary TIFFs before Lightroom finished unwinding the post-processing callback. Cleanup now runs in a guarded deferred task after `renditionIsDone`.
+- Lightroom false failure reports caused by advancing the rendition iterator before conversion completed. Each HEIC is now created and acknowledged within its own iterator step, as required by the Lightroom SDK.
 
 ### Verified
 

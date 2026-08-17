@@ -19,11 +19,11 @@ Use a backup and test your own workflow before relying on it for important expor
 - Embedded output ICC profile.
 - Optional Apple Photos import through PhotoKit.
 - Content-hash duplicate detection for repeated Photos imports.
-- Bounded parallel conversion from Lightroom.
+- Correct per-rendition Lightroom SDK lifecycle handling.
 - Safe deletion of plugin-owned temporary TIFFs after Lightroom accepts the completed rendition.
 - Atomic destination writes and explicit existing-file handling.
 - Per-process JSONL logs under `~/Library/Logs/LRExportHEIC/`.
-- Remembered Lightroom export settings for quality, bit depth, Photos import, cleanup, parallelism, and log level.
+- Remembered Lightroom export settings for quality, bit depth, Photos import, cleanup, and log level.
 - Swift 6 with strict concurrency checks and no third-party runtime dependencies.
 
 ## Verified environment
@@ -57,13 +57,13 @@ See [Installation](docs/INSTALLATION.md) for requirements, manual installation, 
 
 1. Select photos in Lightroom Classic and open Export.
 2. Under Post-Process Actions, select Export HEIC and click Insert.
-3. Configure HEIC quality, color space, bit depth, Photos import, temporary-file cleanup, parallelism, and logging.
+3. Configure HEIC quality, color space, bit depth, Photos import, temporary-file cleanup, and logging.
 4. Keep Lightroom's Metadata section set to the fields you want exported.
 5. Click Export.
 
 Lightroom renders temporary TIFFs first.
 
-The plugin converts them in parallel and writes HEIC data to Lightroom's requested destination paths.
+The plugin converts each rendition before returning it to Lightroom and writes HEIC data to Lightroom's requested destination path.
 
 ## Tests
 
