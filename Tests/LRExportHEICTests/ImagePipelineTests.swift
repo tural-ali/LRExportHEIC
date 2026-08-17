@@ -55,6 +55,28 @@ struct ImagePipelineTests {
     #expect(FileManager.default.fileExists(atPath: output.path))
   }
 
+  @Test("Atomically replaces an existing destination when requested")
+  func overwrite() throws {
+    let fixture = try Fixture(type: .tiff, bitsPerComponent: 8)
+    defer { fixture.remove() }
+    let output = fixture.directory.appendingPathComponent("existing.jpg")
+    try Data("previous export".utf8).write(to: output)
+    var exportOptions = options(input: fixture.url, output: output, depth: .eight)
+    exportOptions = CommandLineOptions(
+      inputURL: exportOptions.inputURL, outputURL: exportOptions.outputURL,
+      quality: exportOptions.quality, sizeLimit: exportOptions.sizeLimit,
+      minimumQuality: exportOptions.minimumQuality, maximumQuality: exportOptions.maximumQuality,
+      colorSpaceName: exportOptions.colorSpaceName, bitDepth: exportOptions.bitDepth,
+      importIntoPhotos: exportOptions.importIntoPhotos, photosLedger: exportOptions.photosLedger,
+      overwrite: true, logDirectory: exportOptions.logDirectory, logLevel: exportOptions.logLevel,
+      lightroomVersion: exportOptions.lightroomVersion, verbose: exportOptions.verbose)
+
+    _ = try exporter(in: fixture.directory).export(exportOptions)
+
+    #expect(CGImageSourceCreateWithURL(output as CFURL, nil) != nil)
+    #expect(try Data(contentsOf: output) != Data("previous export".utf8))
+  }
+
   @Test("Processes a bounded large batch concurrently")
   func largeBatch() async throws {
     let fixture = try Fixture(type: .tiff, bitsPerComponent: 8)

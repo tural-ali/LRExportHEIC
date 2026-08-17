@@ -82,6 +82,8 @@ The Swift layer reports typed errors for missing or invalid input, existing dest
 
 Destination files are written through same-directory temporary files and moved into place only after encoding and metadata verification succeed.
 
+The Lightroom integration passes `--overwrite` because Lightroom has already resolved its destination collision policy before providing `destinationPath`; replacement remains atomic and cannot destroy the prior file if encoding or metadata verification fails.
+
 Photos failures are logged as warnings and do not discard an otherwise successful HEIC export.
 
 The Lua layer continues independent jobs after one conversion fails and reports each result back to Lightroom.

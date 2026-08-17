@@ -1,5 +1,7 @@
 import Foundation
 
+var activeLogger: FileLogger?
+
 do {
   let options = try CommandLineOptions.parse(Array(CommandLine.arguments.dropFirst()))
   let logger = try FileLogger(
@@ -7,6 +9,7 @@ do {
     level: options.logLevel,
     verbose: options.verbose
   )
+  activeLogger = logger
   let result = try HEICExporter(logger: logger).export(options)
   if options.importIntoPhotos {
     do {
@@ -27,6 +30,7 @@ do {
     "bytes": "\(result.fileSize)",
   ])
 } catch {
+  activeLogger?.error("export failed", fields: ["error": error.localizedDescription])
   FileHandle.standardError.write(Data("LRExportHEIC: \(error)\n".utf8))
   exit(1)
 }

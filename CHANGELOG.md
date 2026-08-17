@@ -28,6 +28,8 @@
 - Concurrent log corruption by isolating log files per process.
 - Lightroom false failure reports caused by deleting temporary TIFFs before Lightroom finished unwinding the post-processing callback. Cleanup now runs in a guarded deferred task after `renditionIsDone`.
 - Lightroom false failure reports caused by advancing the rendition iterator before conversion completed. Each HEIC is now created and acknowledged within its own iterator step, as required by the Lightroom SDK.
+- Repeat exports failing when Lightroom selected an existing destination. The plugin now replaces only Lightroom's resolved destination, atomically and only after the new HEIC passes metadata verification.
+- Structured logs being empty for failures raised before encoding started.
 
 ### Verified
 

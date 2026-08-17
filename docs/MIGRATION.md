@@ -8,17 +8,16 @@ Existing Lightroom export presets continue to receive defaults for new settings.
 
 - Apple Photos import: off.
 - Delete temporary TIFFs: on.
-- Parallel jobs: 4.
 - Log level: info.
 
 ## Behavior changes
 
 - Metadata is explicitly copied and verified.
 - Destination writes are atomic.
-- An existing destination is rejected by the Swift CLI unless `--overwrite` is explicitly supplied.
+- The Lightroom plugin passes `--overwrite` for Lightroom's resolved destination. Standalone CLI use still rejects an existing destination unless `--overwrite` is explicitly supplied.
 - Size-limit failures throw normal errors instead of terminating with `fatalError`.
 - Temporary TIFFs are deleted only after successful HEIC creation and Lightroom acknowledgement.
-- Parallel exports create one log file per converter process.
+- Each converter process writes its own log file.
 - PhotoKit imports use content hashes to avoid duplicate imports of the same encoded file.
 
 ## Command-line compatibility

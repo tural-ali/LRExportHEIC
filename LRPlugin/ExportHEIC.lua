@@ -220,6 +220,7 @@ return {
 
     cmd = cmd .. ' --bit-depth ' .. p.HEICBitDepth
       .. ' --color-space ' .. shellQuote(p.HEICColorSpace)
+      .. ' --overwrite'
       .. ' --log-level ' .. shellQuote(p.HEICLogLevel)
       .. ' --lightroom-version ' .. shellQuote(lightroomVersion())
     if p.HEICImportPhotos then
