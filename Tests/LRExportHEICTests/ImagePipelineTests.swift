@@ -41,6 +41,25 @@ struct ImagePipelineTests {
     #expect(properties[kCGImagePropertyProfileName] != nil)
   }
 
+  @Test("Ignores TIFF and JPEG structural tags that HEIC cannot carry")
+  func formatSpecificMetadata() {
+    let structuralTags = [
+      "exif:FlashpixVersion",
+      "exifEX:CompositeImage",
+      "exifEX:InteroperabilityIndex",
+      "tiff:ReferenceBlackWhite",
+      "tiff:YCbCrCoefficients",
+      "tiff:YCbCrPositioning",
+      "tiff:YCbCrSubSampling",
+    ]
+
+    for tag in structuralTags {
+      #expect(!MetadataCopier.isSemanticTag(tag))
+    }
+    #expect(MetadataCopier.isSemanticTag("exif:DateTimeOriginal"))
+    #expect(MetadataCopier.isSemanticTag("dc:subject"))
+  }
+
   @Test("Handles spaces, emoji, Unicode, and long paths")
   func filenames() throws {
     let fixture = try Fixture(type: .tiff, bitsPerComponent: 8)

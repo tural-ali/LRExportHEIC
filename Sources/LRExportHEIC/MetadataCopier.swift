@@ -75,13 +75,17 @@ enum MetadataCopier {
     return paths
   }
 
-  private static func isSemanticTag(_ path: String) -> Bool {
+  static func isSemanticTag(_ path: String) -> Bool {
     let formatSpecificTags: Set<String> = [
+      "exif:FlashpixVersion",
+      "exifEX:CompositeImage", "exifEX:InteroperabilityIndex",
       "iio:hasIIM",
       "tiff:BitsPerSample", "tiff:Compression", "tiff:ImageLength", "tiff:ImageWidth",
       "tiff:PhotometricInterpretation", "tiff:PlanarConfiguration", "tiff:ResolutionUnit",
+      "tiff:ReferenceBlackWhite",
       "tiff:RowsPerStrip", "tiff:SamplesPerPixel", "tiff:StripByteCounts",
-      "tiff:StripOffsets", "tiff:XResolution", "tiff:YResolution",
+      "tiff:StripOffsets", "tiff:XResolution", "tiff:YCbCrCoefficients",
+      "tiff:YCbCrPositioning", "tiff:YCbCrSubSampling", "tiff:YResolution",
     ]
     return !formatSpecificTags.contains(path)
   }
