@@ -14,7 +14,7 @@ if GIT_VERSION=$(git describe --tags --exact-match 2>/dev/null); then
   MAJOR_VERSION=$(echo "$GIT_VERSION" | cut -f 1 -d . | tr -d 'v')
   MINOR_VERSION=$(echo "$GIT_VERSION" | cut -f 2 -d .)
   PATCH_VERSION=$(echo "$GIT_VERSION" | cut -f 3 -d .)
-  BUILD_NUMBER=$(git rev-list --all --count)
+  BUILD_NUMBER=$(git rev-list HEAD --count)
 
   VERSION_SPEC="VERSION = { major=${MAJOR_VERSION}, minor=${MINOR_VERSION}, revision=${PATCH_VERSION}, build=${BUILD_NUMBER} },"
 

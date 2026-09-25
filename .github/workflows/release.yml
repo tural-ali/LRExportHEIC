@@ -1,0 +1,128 @@
+name: Release v2.0.0
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-v2.0.0
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check release prerequisites
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          NOTARY_API_KEY_BASE64: ${{ secrets.NOTARY_API_KEY_BASE64 }}
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF" == refs/heads/main ]] || { echo 'Run this workflow from main.' >&2; exit 1; }
+          for name in BUILD_CERTIFICATE_BASE64 P12_PASSWORD NOTARY_API_KEY_BASE64 NOTARY_KEY_ID NOTARY_ISSUER_ID; do
+            [[ -n "${!name}" ]] || { echo "Missing GitHub secret: $name" >&2; exit 1; }
+          done
+          [[ -z "$(git ls-remote --tags origin refs/tags/v2.0.0)" ]] || { echo 'v2.0.0 tag already exists.' >&2; exit 1; }
+          if gh release view v2.0.0 >/dev/null 2>&1; then
+            echo 'v2.0.0 release already exists.' >&2
+            exit 1
+          fi
+          git tag -a v2.0.0 -m 'LRExportHEIC 2.0.0'
+
+      - name: Test and build universal plugin
+        run: |
+          set -euo pipefail
+          swift test --disable-sandbox
+          ./build.sh
+          architectures=$(lipo -archs plugin/ExportHEIC.lrplugin/LRExportHEIC)
+          [[ " $architectures " == *' arm64 '* && " $architectures " == *' x86_64 '* ]]
+          grep -F 'VERSION = { major=2, minor=0, revision=0,' plugin/ExportHEIC.lrplugin/Info.lua
+
+      - name: Import Developer ID certificate
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+        run: |
+          set -euo pipefail
+          certificate="$RUNNER_TEMP/release-certificate.p12"
+          keychain="$RUNNER_TEMP/release-signing.keychain-db"
+          keychain_password=$(uuidgen)
+          printf '%s' "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o "$certificate"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          security import "$certificate" -P "$P12_PASSWORD" -T /usr/bin/codesign -t cert -f pkcs12 -k "$keychain"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$keychain_password" "$keychain"
+          security list-keychains -d user -s "$keychain"
+          identity=$(security find-identity -v -p codesigning "$keychain" | awk '/Developer ID Application:/ {print $2}')
+          [[ "$identity" =~ ^[0-9A-Fa-f]{40}$ ]] || { echo 'Expected exactly one Developer ID Application identity.' >&2; exit 1; }
+          echo "SIGNING_IDENTITY=$identity" >> "$GITHUB_ENV"
+
+      - name: Sign and package
+        run: |
+          set -euo pipefail
+          binary=plugin/ExportHEIC.lrplugin/LRExportHEIC
+          codesign --force --sign "$SIGNING_IDENTITY" --timestamp --options runtime "$binary"
+          codesign --verify --strict --verbose=2 "$binary"
+          codesign -dv --verbose=2 "$binary" 2>&1 | grep -F 'Authority=Developer ID Application:'
+          payload="$RUNNER_TEMP/LRExportHEIC-release"
+          mkdir -p "$payload"
+          ditto plugin/ExportHEIC.lrplugin "$payload/ExportHEIC.lrplugin"
+          cp docs/RELEASE_INSTALLATION.txt "$payload/INSTALLATION.txt"
+          dmg="$RUNNER_TEMP/LRExportHEIC-v2.0.0.dmg"
+          hdiutil create -volname 'LRExportHEIC 2.0.0' -srcfolder "$payload" -format UDZO "$dmg"
+          hdiutil verify "$dmg"
+          echo "RELEASE_DMG=$dmg" >> "$GITHUB_ENV"
+
+      - name: Notarize and verify disk image
+        env:
+          NOTARY_API_KEY_BASE64: ${{ secrets.NOTARY_API_KEY_BASE64 }}
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          key="$RUNNER_TEMP/notary-key.p8"
+          printf '%s' "$NOTARY_API_KEY_BASE64" | base64 --decode -o "$key"
+          xcrun notarytool submit "$RELEASE_DMG" --key "$key" --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER_ID" --wait --output-format json > "$RUNNER_TEMP/notarization.json"
+          jq -e '.status == "Accepted"' "$RUNNER_TEMP/notarization.json"
+          submission_id=$(jq -r '.id' "$RUNNER_TEMP/notarization.json")
+          xcrun notarytool log "$submission_id" "$RUNNER_TEMP/notarization-log.json" --key "$key" --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER_ID"
+          jq -e '[.issues[]? | select(.severity == "error")] | length == 0' "$RUNNER_TEMP/notarization-log.json"
+          xcrun stapler staple "$RELEASE_DMG"
+          xcrun stapler validate "$RELEASE_DMG"
+          mountpoint="$RUNNER_TEMP/release-mount"
+          mkdir -p "$mountpoint"
+          hdiutil attach -readonly -nobrowse -mountpoint "$mountpoint" "$RELEASE_DMG"
+          trap 'hdiutil detach "$mountpoint"' EXIT
+          codesign --verify --strict --verbose=2 "$mountpoint/ExportHEIC.lrplugin/LRExportHEIC"
+          cmp plugin/ExportHEIC.lrplugin/LRExportHEIC "$mountpoint/ExportHEIC.lrplugin/LRExportHEIC"
+          (cd "$RUNNER_TEMP" && shasum -a 256 "$(basename "$RELEASE_DMG")" > "$(basename "$RELEASE_DMG").sha256")
+
+      - name: Create draft GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create v2.0.0 "$RELEASE_DMG" "$RELEASE_DMG.sha256" \
+            --target "$GITHUB_SHA" \
+            --title 'LRExportHEIC 2.0.0' \
+            --notes-file docs/RELEASE_NOTES-v2.0.0.md \
+            --draft
+          gh release view v2.0.0 --json url,isDraft,assets --jq '{url,isDraft,assets:[.assets[].name]}'
+
+      - name: Remove signing material
+        if: always()
+        run: |
+          rm -f "$RUNNER_TEMP/release-certificate.p12" "$RUNNER_TEMP/notary-key.p8"
+          security delete-keychain "$RUNNER_TEMP/release-signing.keychain-db" 2>/dev/null || true

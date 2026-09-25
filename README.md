@@ -6,11 +6,11 @@ LRExportHEIC asks Lightroom to render an edited photo as an 8-bit or 16-bit TIFF
 
 ## Project status
 
-Version 2 is under active development.
-
 The Swift pipeline and a 20-image Lightroom Classic 15.5 batch have been tested on macOS 27 with Apple Silicon.
 
 Use a backup and test your own workflow before relying on it for important exports.
+
+Signed downloads, when available, are on the [Releases page](https://github.com/tural-ali/LRExportHEIC/releases).
 
 ## Features
 
@@ -29,8 +29,8 @@ Use a backup and test your own workflow before relying on it for important expor
 ## Verified environment
 
 - Lightroom Classic 15.5.
-- macOS 27 beta.
-- Xcode 27 beta and Swift 6.4.
+- macOS 27.
+- Xcode 27 and Swift 6.4.
 - Universal `arm64` and `x86_64` release build.
 
 Lightroom Classic 15.5 still supplies a `.jpg` destination name to this post-processing filter.
@@ -41,7 +41,11 @@ See [Known limitations](docs/KNOWN_LIMITATIONS.md) for details.
 
 ## Installation
 
-Install or update from source with one command:
+For a signed release, download the `LRExportHEIC-v2.0.0.dmg` from the [Releases page](https://github.com/tural-ali/LRExportHEIC/releases) and follow [release installation](docs/INSTALLATION.md#release-installation).
+
+This does not require Xcode.
+
+If no version 2 release is listed yet, build and install from source:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/tural-ali/LRExportHEIC/main/install.sh | /bin/bash
@@ -81,6 +85,7 @@ The automated suite covers JPEG, TIFF, 16-bit TIFF, 8-bit HEIC, 10-bit HEIC, met
 
 - [Architecture and audit](docs/ARCHITECTURE.md)
 - [Installation](docs/INSTALLATION.md)
+- [Release process](docs/RELEASING.md)
 - [Migration from version 1](docs/MIGRATION.md)
 - [Known limitations](docs/KNOWN_LIMITATIONS.md)
 - [Changelog](CHANGELOG.md)

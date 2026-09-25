@@ -39,6 +39,8 @@ struct ImagePipelineTests {
     #expect(result.metadata.destinationTagCount >= result.metadata.sourceTagCount)
     let properties = try imageProperties(output)
     #expect(properties[kCGImagePropertyProfileName] != nil)
+    let exif = properties[kCGImagePropertyExifDictionary] as? [CFString: Any]
+    #expect(exif?[kCGImagePropertyExifDateTimeOriginal] as? String == "2026:08:05 12:34:56")
   }
 
   @Test("Ignores TIFF and JPEG structural tags that HEIC cannot carry")

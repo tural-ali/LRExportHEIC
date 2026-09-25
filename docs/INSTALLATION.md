@@ -1,6 +1,20 @@
 # Installation
 
-## One-line installation
+## Release installation
+
+This method does not require Xcode.
+
+1. Download `LRExportHEIC-v2.0.0.dmg` from the [GitHub Releases page](https://github.com/tural-ali/LRExportHEIC/releases) when the signed version 2 release is available.
+2. Open the disk image and read `INSTALLATION.txt` inside it.
+3. Quit Lightroom Classic.
+4. In Finder, choose Go > Go to Folder and enter `~/Library/Application Support/Adobe/Lightroom/Modules/`.
+5. Create the `Modules` folder inside `Lightroom` if it does not exist.
+6. Copy `ExportHEIC.lrplugin` from the disk image into `Modules`, replacing the older copy if one is present.
+7. Restart Lightroom Classic and confirm that Export HEIC is enabled under File > Plug-in Manager.
+
+If Plug-in Manager also shows an older copy from a different path, remove that older entry so Lightroom uses the new copy in `Modules`.
+
+## Source installation
 
 Requirements:
 
@@ -26,15 +40,6 @@ The installer performs these actions without `sudo`:
 Restart Lightroom Classic after installation.
 
 You can review [install.sh](../install.sh) before running the one-liner.
-
-## Release installation
-
-1. Download `ExportHEIC.lrplugin` from the repository's Releases page when a version 2 release is available.
-2. Move it to a permanent local folder.
-3. Open Lightroom Classic.
-4. Choose File > Plug-in Manager.
-5. Click Add and select `ExportHEIC.lrplugin`.
-6. Confirm that the status says the plug-in is enabled.
 
 ## Development installation
 

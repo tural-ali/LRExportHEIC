@@ -105,9 +105,9 @@ The Lua layer continues independent jobs after one conversion fails and reports 
 
 ## Remaining improvement opportunities
 
-- Add a signed and notarized automated release pipeline for version 2.
+- Configure Developer ID and notarization credentials, then validate the signed version 2 disk image on a clean Mac before publishing.
 - Add a Lightroom-controlled experiment for a post-acknowledgement `.heic` rename without causing a false export failure.
 - Add real PhotoKit authorization integration tests behind an opt-in test flag.
-- Add fixture assertions for exact metadata values, not only tag presence.
+- Extend exact-value fixture assertions beyond the capture timestamp to the other metadata fields.
 - Add process-level peak resident-memory collection to the benchmark harness.
 - Investigate a supported Lightroom SDK design for bounded parallel conversion without advancing unfinished rendition iterator steps.

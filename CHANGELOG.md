@@ -29,11 +29,13 @@
 - Lightroom false failure reports caused by deleting temporary TIFFs before Lightroom finished unwinding the post-processing callback. Cleanup now runs in a guarded deferred task after `renditionIsDone`.
 - Lightroom false failure reports caused by advancing the rendition iterator before conversion completed. Each HEIC is now created and acknowledged within its own iterator step, as required by the Lightroom SDK.
 - Repeat exports failing when Lightroom selected an existing destination. The plugin now replaces only Lightroom's resolved destination, atomically and only after the new HEIC passes metadata verification.
+- macOS 27 rejecting valid HEIC exports because ImageIO omits TIFF/JPEG structural tags from the HEIC container.
 - Structured logs being empty for failures raised before encoding started.
 
 ### Verified
 
-- Full automated suite passes with Xcode 27 beta and Swift 6.4.
+- Full automated suite passes with Xcode 27 and Swift 6.4.
 - A 20-image Lightroom Classic 15.5 batch produced valid 10-bit HEIC files with 199 to 200 source metadata tags represented by 203 to 204 destination tags.
 - Lightroom temporary TIFFs were removed after successful conversion.
 - PhotoKit import completed successfully.
+- The original EXIF capture timestamp remains in an exported HEIC in the metadata regression test.
