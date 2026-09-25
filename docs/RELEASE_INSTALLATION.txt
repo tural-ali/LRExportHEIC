@@ -1,16 +1,19 @@
 LRExportHEIC 2.0.0 installation
 
-1. Quit Lightroom Classic.
-2. In Finder, choose Go > Go to Folder.
-3. Enter ~/Library/Application Support/Adobe/Lightroom/Modules/.
-4. Create the Modules folder inside Lightroom if it does not exist.
-5. Copy ExportHEIC.lrplugin from this disk image into Modules.
-6. Replace the older ExportHEIC.lrplugin folder if Finder asks.
-7. Restart Lightroom Classic.
-8. Under File > Plug-in Manager, confirm that Export HEIC is enabled and its path ends in Lightroom/Modules/ExportHEIC.lrplugin.
+1. Quit Lightroom Classic, but leave this disk image window open.
+2. In Finder, press Shift-Command-G.
+3. Paste ~/Library/Application Support/Adobe/Lightroom/Modules/ and press Return.
+4. If that folder does not exist, open ~/Library/Application Support/Adobe/Lightroom/ instead and create a folder named Modules.
+5. Drag ExportHEIC.lrplugin from this disk image into Modules.
+6. If Finder asks, choose Replace to update the older copy.
+7. Open Lightroom Classic and choose File > Plug-in Manager.
+8. Confirm Export HEIC is enabled and its path ends in Lightroom/Modules/ExportHEIC.lrplugin.
+9. Export one test photo using Export HEIC under Post-Process Actions.
 
 If Lightroom still lists an older Export HEIC from a different path, remove that old entry in Plug-in Manager.
-This package does not require Xcode.
+If Export HEIC is not listed, check that ExportHEIC.lrplugin is directly inside Modules, then restart Lightroom Classic.
+This package does not require Xcode, Terminal, or an administrator password.
+Do not bypass a macOS security warning; report it at https://github.com/tural-ali/LRExportHEIC/issues.
 
 Known limitation: Lightroom may name exported HEIC files with a .jpg extension.
 The file contains HEIC data, and its capture date remains in its embedded metadata when Lightroom supplies that date.

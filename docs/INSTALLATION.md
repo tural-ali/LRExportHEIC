@@ -2,17 +2,25 @@
 
 ## Release installation
 
-This method does not require Xcode.
+This method does not require Xcode, Terminal, or an administrator password.
 
-1. Download `LRExportHEIC-v2.0.0.dmg` from the [GitHub Releases page](https://github.com/tural-ali/LRExportHEIC/releases) when the signed version 2 release is available.
-2. Open the disk image and read `INSTALLATION.txt` inside it.
+1. On the [GitHub Releases page](https://github.com/tural-ali/LRExportHEIC/releases), open the latest signed release and download `LRExportHEIC-v2.0.0.dmg` under **Assets**.
+   Do not use the green **Code** button or the automatically generated source ZIP.
+2. Double-click the downloaded `.dmg` file and leave its window open.
 3. Quit Lightroom Classic.
-4. In Finder, choose Go > Go to Folder and enter `~/Library/Application Support/Adobe/Lightroom/Modules/`.
-5. Create the `Modules` folder inside `Lightroom` if it does not exist.
-6. Copy `ExportHEIC.lrplugin` from the disk image into `Modules`, replacing the older copy if one is present.
-7. Restart Lightroom Classic and confirm that Export HEIC is enabled under File > Plug-in Manager.
+4. In Finder, press Shift-Command-G, paste `~/Library/Application Support/Adobe/Lightroom/Modules/`, and press Return.
+   If Finder says the folder does not exist, open `~/Library/Application Support/Adobe/Lightroom/` instead and create a folder named `Modules` there.
+5. Drag `ExportHEIC.lrplugin` from the disk image window into `Modules`.
+   If Finder asks, choose **Replace** to update the older copy.
+6. Open Lightroom Classic and choose **File > Plug-in Manager**.
+   Confirm **Export HEIC** is enabled and its path ends in `Lightroom/Modules/ExportHEIC.lrplugin`.
+7. Select one photo, choose **File > Export**, insert **Export HEIC** under **Post-Process Actions**, and export a test image.
 
 If Plug-in Manager also shows an older copy from a different path, remove that older entry so Lightroom uses the new copy in `Modules`.
+
+If the plug-in is not listed, confirm the copied folder is named exactly `ExportHEIC.lrplugin` and is directly inside `Modules`, then restart Lightroom Classic.
+If macOS reports a security problem opening the signed release, do not bypass the warning; report it on the repository's [Issues page](https://github.com/tural-ali/LRExportHEIC/issues).
+Lightroom may give the exported HEIC file a `.jpg` name; see [Known limitations](KNOWN_LIMITATIONS.md#lightroom-destination-extension).
 
 ## Source installation
 

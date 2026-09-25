@@ -41,9 +41,11 @@ See [Known limitations](docs/KNOWN_LIMITATIONS.md) for details.
 
 ## Installation
 
-For a signed release, download the `LRExportHEIC-v2.0.0.dmg` from the [Releases page](https://github.com/tural-ali/LRExportHEIC/releases) and follow [release installation](docs/INSTALLATION.md#release-installation).
+For a signed release, download `LRExportHEIC-v2.0.0.dmg` from the [Releases page](https://github.com/tural-ali/LRExportHEIC/releases), not the green **Code** button.
+Open the download and follow `INSTALLATION.txt` inside.
+The [step-by-step guide](docs/INSTALLATION.md#release-installation) covers updating an older copy and checking that Lightroom has loaded the plug-in.
 
-This does not require Xcode.
+This does not require Xcode, Terminal, or an administrator password.
 
 If no version 2 release is listed yet, build and install from source:
 
